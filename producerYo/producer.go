@@ -5,7 +5,7 @@ import (
 
 	"github.com/gocql/gocql"
 
-	"github.com/Shopify/sarama"
+	"github.com/Shopify/sarama" //kafka api
 )
 
 func newProducer(brokers []string) (sarama.SyncProducer, error) {

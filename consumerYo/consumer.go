@@ -8,7 +8,6 @@ import (
 
 //var strCh = make(chan []byte)
 
-//Consumer kafka takes topic as 1 arg
 func consumer(topic string, strCh chan []byte, brokers []string) {
 	config := sarama.NewConfig()
 	config.Consumer.Return.Errors = true
@@ -37,8 +36,12 @@ func consumer(topic string, strCh chan []byte, brokers []string) {
 		pc, _ := consumer.ConsumePartition(topic, partition, initialOffset)
 
 		//There is a separate goroutine for each partition
+		//**************************************************
 		//TODO: do something with channeling
 		//obviously  something fucked up is going on in here
+		//each goroutine is using one and the same chan...
+		//***************************************************
+
 		go func(pc sarama.PartitionConsumer) {
 			for message := range pc.Messages() {
 				strCh <- message.Value
