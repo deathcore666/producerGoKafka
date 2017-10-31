@@ -40,13 +40,15 @@ func consumer(topic string, strCh chan []byte, brokers []string) {
 		//TODO: do something with channeling
 		//obviously  something fucked up is going on in here
 		//each goroutine is using one and the same chan...
-		//***************************************************
+		//buuut its kindof ok
+		//**************************************************
 
 		go func(pc sarama.PartitionConsumer) {
 			for message := range pc.Messages() {
 				strCh <- message.Value
 			}
 		}(pc)
-
+		
 	}
+
 }
