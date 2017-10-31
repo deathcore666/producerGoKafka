@@ -36,10 +36,14 @@ func consumer(topic string, strCh chan []byte, brokers []string) {
 	for _, partition := range partitionList {
 		pc, _ := consumer.ConsumePartition(topic, partition, initialOffset)
 
+		//There is a separate goroutine for each partition
+		//TODO: do something with channeling
+		//obviously  something fucked up is going on in here
 		go func(pc sarama.PartitionConsumer) {
 			for message := range pc.Messages() {
 				strCh <- message.Value
 			}
 		}(pc)
+
 	}
 }

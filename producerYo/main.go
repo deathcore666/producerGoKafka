@@ -14,8 +14,9 @@ func main() {
 	if err != nil {
 		fmt.Println("Could not create producer: ", err)
 	}
+	//Kafka
 	topic := "test1"
-
+	//Cassandra
 	cluster := gocql.NewCluster("127.0.0.1")
 	cluster.Keyspace = "demodb"
 	session, err := cluster.CreateSession()
