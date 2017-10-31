@@ -27,6 +27,7 @@ func prepareMessage(topic, message string) *sarama.ProducerMessage {
 		Value:     sarama.StringEncoder(message),
 	}
 
+	//yuolo
 	return msg
 }
 
