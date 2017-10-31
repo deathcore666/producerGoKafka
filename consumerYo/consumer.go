@@ -13,8 +13,6 @@ func consumer(topic string, strCh chan []byte, brokers []string) {
 	config := sarama.NewConfig()
 	config.Consumer.Return.Errors = true
 
-	// Specify brokers address. This is default one
-
 	// Create new consumer
 	consumer, err := sarama.NewConsumer(brokers, config)
 	if err != nil {
@@ -44,5 +42,4 @@ func consumer(topic string, strCh chan []byte, brokers []string) {
 			}
 		}(pc)
 	}
-
 }
