@@ -4,36 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Shopify/sarama"
 	"github.com/gocql/gocql"
 )
 
-var brokers = []string{"localhost:9092"}
-
-func newProducer() (sarama.SyncProducer, error) {
-	config := sarama.NewConfig()
-	config.Producer.Partitioner = sarama.NewRandomPartitioner
-	config.Producer.RequiredAcks = sarama.WaitForAll
-	config.Producer.Return.Successes = true
-	producer, err := sarama.NewSyncProducer(brokers, config)
-
-	return producer, err
-}
-
-func prepareMessage(topic, message string) *sarama.ProducerMessage {
-	msg := &sarama.ProducerMessage{
-		Topic:     topic,
-		Partition: -1,
-		Value:     sarama.StringEncoder(message),
-	}
-
-	//yuolo
-	return msg
-}
-
 func main() {
 
-	producer, err := newProducer()
+	var brokers = []string{"localhost:9092"}
+	producer, err := newProducer(brokers)
 	if err != nil {
 		fmt.Println("Could not create producer: ", err)
 	}
@@ -49,13 +26,7 @@ func main() {
 	defer session.Close()
 
 	//db population used once!
-	/*
-		for i := 1; i <= 20; i++ {
-			if err := session.Query(`INSERT INTO users (id, lastname, name) VALUES (?, 'kuliev', 'bratan')`, i).Exec(); err != nil {
-				log.Fatal("Error: ", err)
-			}
-		}
-	*/
+	//populate(session)
 	var msg string
 	var name, lastname string
 	query := `SELECT name,lastname FROM users`

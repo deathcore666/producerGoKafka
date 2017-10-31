@@ -18,11 +18,13 @@ func main() {
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-
 	updates, err := bot.GetUpdatesChan(u)
 
+	//myChan <- consumer.go
+	myChan := make(chan []byte)
 	topic := "test1"
-	go consumer(topic)
+	kafkaBrokers := []string{"localhost:9092"}
+	go consumer(topic, myChan, kafkaBrokers)
 
 	for update := range updates {
 		if update.Message == nil {
@@ -31,8 +33,8 @@ func main() {
 
 		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
-		//strCh comes from the consumer goroutine
-		for msgStr := range strCh {
+		//myChan <- consumer.go
+		for msgStr := range myChan {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, string(msgStr))
 			bot.Send(msg)
 		}

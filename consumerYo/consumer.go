@@ -6,15 +6,14 @@ import (
 	"github.com/Shopify/sarama"
 )
 
-var strCh = make(chan []byte)
+//var strCh = make(chan []byte)
 
 //Consumer kafka takes topic as 1 arg
-func consumer(topic string) {
+func consumer(topic string, strCh chan []byte, brokers []string) {
 	config := sarama.NewConfig()
 	config.Consumer.Return.Errors = true
 
 	// Specify brokers address. This is default one
-	brokers := []string{"localhost:9092"}
 
 	// Create new consumer
 	consumer, err := sarama.NewConsumer(brokers, config)
