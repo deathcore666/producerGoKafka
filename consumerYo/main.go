@@ -39,7 +39,7 @@ func main() {
 	//starting kafka client routine to listen to topic channnel
 	var topicChan = make(chan string)
 	var respChan = make(chan []byte)
-
+	go consumer(topicChan, respChan, kafkaBrokers)
 	//bot
 	for update := range updates {
 		if update.Message == nil {
@@ -54,6 +54,7 @@ func main() {
 		case "/kafkasingletopic":
 			msgString := "Choose one"
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgString)
+			numericKeyboard.OneTimeKeyboard = true
 			msg.ReplyMarkup = numericKeyboard
 			bot.Send(msg)
 		case "/kafkaall":
@@ -61,15 +62,14 @@ func main() {
 				"Reading  from all topics goroutinely"))
 
 		case "Topic: test1":
-			bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-				"---------------------"))
-			go consumer(topicChan, respChan, kafkaBrokers)
 			topic := "test1"
 			topicChan <- topic
-			for msgStr := range respChan {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, string(msgStr))
-				bot.Send(msg)
-			}
+			go func() {
+				for msgStr := range respChan {
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, string(msgStr))
+					bot.Send(msg)
+				}
+			}()
 
 		}
 

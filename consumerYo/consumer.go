@@ -50,8 +50,6 @@ func consumer(topicChan chan string, respChan chan []byte, brokers []string) {
 					respChan <- message.Value
 				}
 			}(pc)
-
 		}
 	}
-
 }
