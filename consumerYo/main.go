@@ -26,6 +26,11 @@ type xVid struct {
 	thumb string
 }
 
+type respCons struct {
+	resp string
+	msg  *tgbotapi.Message
+}
+
 func main() {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
@@ -37,39 +42,39 @@ func main() {
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
 	//starting kafka client routine to listen to topic channnel
-	var topicChan = make(chan string)
-	var respChan = make(chan []byte)
-	go consumer(topicChan, respChan, kafkaBrokers)
+	var respChan = make(chan respCons)
+	var reqChan = make(chan *tgbotapi.Message)
+	go consumer(reqChan, respChan)
 	//bot
-	for update := range updates {
-		if update.Message == nil {
-			continue
-		}
-		switch update.Message.Text {
-		case "/start":
-			msgString := "Hello and welcome, " + update.Message.From.UserName + "!\n" +
-				"/kafkasingletopic\n/kafkaall"
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgString)
-			bot.Send(msg)
-		case "/kafkasingletopic":
-			msgString := "Choose one"
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgString)
-			numericKeyboard.OneTimeKeyboard = true
-			msg.ReplyMarkup = numericKeyboard
-			bot.Send(msg)
-		case "/kafkaall":
-			bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-				"Reading  from all topics goroutinely"))
+	for {
+		select {
+		case update := <-updates:
+			if update.Message == nil {
+				continue
+			}
+			switch update.Message.Text {
+			case "/start":
+				msgString := "Hello and welcome, " + update.Message.From.UserName + "!\n" +
+					"/kafkasingletopic\n/kafkaall"
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgString)
+				bot.Send(msg)
+			case "/kafkasingletopic":
+				msgString := "Choose one"
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgString)
+				numericKeyboard.OneTimeKeyboard = true
+				msg.ReplyMarkup = numericKeyboard
+				bot.Send(msg)
+			case "/kafkaall":
+				bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
+					"Reading  from all topics goroutinely"))
 
-		case "Topic: test1":
-			topic := "test1"
-			topicChan <- topic
-			go func() {
-				for msgStr := range respChan {
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, string(msgStr))
-					bot.Send(msg)
-				}
-			}()
+			case "Topic: test1":
+				reqChan <- update.Message
+			}
+		case <-respChan:
+			for msg := range respChan {
+				bot.Send(tgbotapi.NewMessage(msg.msg.Chat.ID, string(msg.resp)))
+			}
 
 		}
 
