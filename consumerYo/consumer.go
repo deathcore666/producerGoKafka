@@ -8,7 +8,7 @@ import (
 
 //var strCh = make(chan []byte)
 
-func consumer(topic string, strCh chan []byte, brokers []string) {
+func consumer(topicChan chan string, respChan chan []byte, brokers []string) {
 	config := sarama.NewConfig()
 	config.Consumer.Return.Errors = true
 
@@ -24,31 +24,34 @@ func consumer(topic string, strCh chan []byte, brokers []string) {
 		}
 	}()
 
-	//get all partitions on the given topic
-	partitionList, err := consumer.Partitions(topic)
-	if err != nil {
-		fmt.Println("Error retrieving partitionList ", err)
-	}
+	select {
+	case topic := <-topicChan:
+		//get all partitions on the given topic
+		partitionList, err := consumer.Partitions(topic)
+		if err != nil {
+			fmt.Println("Error retrieving partitionList ", err)
+		}
 
-	//get offset for the oldest message on the topic --oldest-message
-	initialOffset := sarama.OffsetOldest
-	for _, partition := range partitionList {
-		pc, _ := consumer.ConsumePartition(topic, partition, initialOffset)
+		//get offset for the oldest message on the topic --oldest-message
+		initialOffset := sarama.OffsetOldest
+		for _, partition := range partitionList {
+			pc, _ := consumer.ConsumePartition(topic, partition, initialOffset)
 
-		//There is a separate goroutine for each partition
-		//**************************************************
-		//TODO: do something with channeling
-		//obviously  something fucked up is going on in here
-		//each goroutine is using one and the same chan...
-		//buuut its kindof ok
-		//**************************************************
+			//There is a separate goroutine for each partition
+			//**************************************************
+			//TODO: do something with channeling
+			//obviously  something fucked up is going on in here
+			//each goroutine is using one and the same chan...
+			//buuut its kindof ok
+			//**************************************************
 
-		go func(pc sarama.PartitionConsumer) {
-			for message := range pc.Messages() {
-				strCh <- message.Value
-			}
-		}(pc)
-		
+			go func(pc sarama.PartitionConsumer) {
+				for message := range pc.Messages() {
+					respChan <- message.Value
+				}
+			}(pc)
+
+		}
 	}
 
 }
