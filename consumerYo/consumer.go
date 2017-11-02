@@ -8,7 +8,7 @@ import (
 
 //var strCh = make(chan []byte)
 
-func consumer(topicChan chan string, respChan chan []byte, brokers []string) {
+func consumer(reqChan chan kafkaRequest, respChan chan kafkaResponse, brokers []string) {
 	config := sarama.NewConfig()
 	config.Consumer.Return.Errors = true
 
@@ -25,9 +25,9 @@ func consumer(topicChan chan string, respChan chan []byte, brokers []string) {
 	}()
 
 	select {
-	case topic := <-topicChan:
+	case topic := <-reqChan:
 		//get all partitions on the given topic
-		partitionList, err := consumer.Partitions(topic)
+		partitionList, err := consumer.Partitions(topic.topic)
 		if err != nil {
 			fmt.Println("Error retrieving partitionList ", err)
 		}
@@ -35,7 +35,7 @@ func consumer(topicChan chan string, respChan chan []byte, brokers []string) {
 		//get offset for the oldest message on the topic --oldest-message
 		initialOffset := sarama.OffsetOldest
 		for _, partition := range partitionList {
-			pc, _ := consumer.ConsumePartition(topic, partition, initialOffset)
+			pc, _ := consumer.ConsumePartition(topic.topic, partition, initialOffset)
 
 			//There is a separate goroutine for each partition
 			//**************************************************
@@ -47,7 +47,7 @@ func consumer(topicChan chan string, respChan chan []byte, brokers []string) {
 
 			go func(pc sarama.PartitionConsumer) {
 				for message := range pc.Messages() {
-					respChan <- message.Value
+					respChan <- kafkaResponse{topic.telega, message.Value}
 				}
 			}(pc)
 		}

@@ -26,7 +26,25 @@ type xVid struct {
 	thumb string
 }
 
+type kafkaResponse struct {
+	telega  *tgbotapi.Message
+	message []byte
+}
+
+type kafkaRequest struct {
+	telega *tgbotapi.Message
+	topic  string
+}
+
 func main() {
+	//channels for request response
+	var reqChan = make(chan kafkaRequest)
+	var respChan = make(chan kafkaResponse)
+
+	//starting kafka client routine to listen to topic channnel
+	go consumer(reqChan, respChan, kafkaBrokers)
+
+	//bot thingy here
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Panic(err)
@@ -36,41 +54,34 @@ func main() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
-	//starting kafka client routine to listen to topic channnel
-	var topicChan = make(chan string)
-	var respChan = make(chan []byte)
-	go consumer(topicChan, respChan, kafkaBrokers)
-	//bot
-	for update := range updates {
-		if update.Message == nil {
-			continue
-		}
-		switch update.Message.Text {
-		case "/start":
-			msgString := "Hello and welcome, " + update.Message.From.UserName + "!\n" +
-				"/kafkasingletopic\n/kafkaall"
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgString)
-			bot.Send(msg)
-		case "/kafkasingletopic":
-			msgString := "Choose one"
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgString)
-			numericKeyboard.OneTimeKeyboard = true
-			msg.ReplyMarkup = numericKeyboard
-			bot.Send(msg)
-		case "/kafkaall":
-			bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-				"Reading  from all topics goroutinely"))
+	for {
+		select {
+		case update := <-updates:
+			if update.Message == nil {
+				continue
+			}
+			switch update.Message.Text {
+			case "/start":
+				msgString := "Hello and welcome, " + update.Message.From.UserName + "!\n" +
+					"/kafkasingletopic\n/kafkaall"
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgString)
+				bot.Send(msg)
+			case "/kafkasingletopic":
+				msgString := "Choose one"
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgString)
+				numericKeyboard.OneTimeKeyboard = true
+				msg.ReplyMarkup = numericKeyboard
+				bot.Send(msg)
+			case "/kafkaall":
+				bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
+					"Reading  from all topics goroutinely"))
 
-		case "Topic: test1":
-			topic := "test1"
-			topicChan <- topic
-			go func() {
-				for msgStr := range respChan {
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, string(msgStr))
-					bot.Send(msg)
-				}
-			}()
-
+			case "Topic: test1":
+				topic := "test1"
+				reqChan <- kafkaRequest{update.Message, topic}
+			}
+		case response := <-respChan:
+			bot.Send(tgbotapi.NewMessage(response.telega.Chat.ID, string(response.message)))
 		}
 
 	}
