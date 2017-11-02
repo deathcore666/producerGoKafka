@@ -71,11 +71,8 @@ func main() {
 			case "Topic: test1":
 				reqChan <- update.Message
 			}
-		case <-respChan:
-			for msg := range respChan {
-				bot.Send(tgbotapi.NewMessage(msg.msg.Chat.ID, string(msg.resp)))
-			}
-
+		case resp := <-respChan:
+			bot.Send(tgbotapi.NewMessage(resp.msg.Chat.ID, resp.resp))
 		}
 
 	}
