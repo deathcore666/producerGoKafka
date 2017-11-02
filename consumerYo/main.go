@@ -26,12 +26,31 @@ type xVid struct {
 	thumb string
 }
 
+<<<<<<< HEAD
 type respCons struct {
 	resp string
 	msg  *tgbotapi.Message
+=======
+type kafkaResponse struct {
+	telega  *tgbotapi.Message
+	message []byte
+}
+
+type kafkaRequest struct {
+	telega *tgbotapi.Message
+	topic  string
+>>>>>>> b9f17810603af41506b908348ab9b337703530a5
 }
 
 func main() {
+	//channels for request response
+	var reqChan = make(chan kafkaRequest)
+	var respChan = make(chan kafkaResponse)
+
+	//starting kafka client routine to listen to topic channnel
+	go consumer(reqChan, respChan, kafkaBrokers)
+
+	//bot thingy here
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Panic(err)
@@ -41,11 +60,14 @@ func main() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
+<<<<<<< HEAD
 	//starting kafka client routine to listen to topic channnel
 	var respChan = make(chan respCons)
 	var reqChan = make(chan *tgbotapi.Message)
 	go consumer(reqChan, respChan)
 	//bot
+=======
+>>>>>>> b9f17810603af41506b908348ab9b337703530a5
 	for {
 		select {
 		case update := <-updates:
@@ -69,10 +91,18 @@ func main() {
 					"Reading  from all topics goroutinely"))
 
 			case "Topic: test1":
+<<<<<<< HEAD
 				reqChan <- update.Message
 			}
 		case resp := <-respChan:
 			bot.Send(tgbotapi.NewMessage(resp.msg.Chat.ID, resp.resp))
+=======
+				topic := "test1"
+				reqChan <- kafkaRequest{update.Message, topic}
+			}
+		case response := <-respChan:
+			bot.Send(tgbotapi.NewMessage(response.telega.Chat.ID, string(response.message)))
+>>>>>>> b9f17810603af41506b908348ab9b337703530a5
 		}
 
 	}
