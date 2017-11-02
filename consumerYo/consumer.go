@@ -17,7 +17,6 @@ func consumer(reqChan chan kafkaRequest, respChan chan kafkaResponse, brokers []
 	if err != nil {
 		panic(err)
 	}
-
 	defer func() {
 		if err := consumer.Close(); err != nil {
 			panic(err)
@@ -25,29 +24,24 @@ func consumer(reqChan chan kafkaRequest, respChan chan kafkaResponse, brokers []
 	}()
 
 	select {
-	case topic := <-reqChan:
+	case request := <-reqChan:
 		//get all partitions on the given topic
-		partitionList, err := consumer.Partitions(topic.topic)
+		partitionList, err := consumer.Partitions(request.topic)
 		if err != nil {
 			fmt.Println("Error retrieving partitionList ", err)
 		}
 
-		//get offset for the oldest message on the topic --oldest-message
 		initialOffset := sarama.OffsetOldest
 		for _, partition := range partitionList {
-			pc, _ := consumer.ConsumePartition(topic.topic, partition, initialOffset)
-
-			//There is a separate goroutine for each partition
-			//**************************************************
-			//TODO: do something with channeling
-			//obviously  something fucked up is going on in here
-			//each goroutine is using one and the same chan...
-			//buuut its kindof ok
-			//**************************************************
-
+			pc, _ := consumer.ConsumePartition(request.topic, partition, initialOffset)
+			
 			go func(pc sarama.PartitionConsumer) {
-				for message := range pc.Messages() {
-					respChan <- kafkaResponse{topic.telega, message.Value}
+				for {
+					select {
+					case message := <-pc.Messages():
+						respChan <- kafkaResponse{request.telega, message.Value}
+
+					}
 				}
 			}(pc)
 		}
